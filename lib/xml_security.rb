@@ -201,7 +201,7 @@ module XMLSecurity
       # get cert from response
       cert_element = REXML::XPath.first(
         self,
-        "//ds:X509Certificate",
+        "//ds:Signature//ds:X509Certificate",
         { "ds"=>DSIG }
       )
 
