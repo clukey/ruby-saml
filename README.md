@@ -1,11 +1,20 @@
 # Ruby SAML [![Build Status](https://secure.travis-ci.org/onelogin/ruby-saml.png)](http://travis-ci.org/onelogin/ruby-saml) [![Coverage Status](https://coveralls.io/repos/onelogin/ruby-saml/badge.svg?branch=master%0A)](https://coveralls.io/r/onelogin/ruby-saml?branch=master%0A) [![Gem Version](https://badge.fury.io/rb/ruby-saml.svg)](http://badge.fury.io/rb/ruby-saml)
 
+## Updating from 1.2.x to 1.3.X
+
+Version `1.3.0` is a recommended update for all Ruby SAML users as it includes security fixes. It  adds security improvements in order to prevent Signature wrapping attacks. [CVE-2016-5697](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2016-5697)
+
+## Updating from 1.1.x to 1.2.X
+
+Version `1.2` adds IDP metadata parsing improvements, uuid deprecation in favour of SecureRandom, refactor error handling and some minor improvements
+
+There is no compatibility issue detected.
+
+For more details, please review [the changelog](changelog.md).
 
 ## Updating from 1.0.x to 1.1.X
 
 Version `1.1` adds some improvements on signature validation and solves some namespace conflicts.
-
-For more details, please review [the changelog](changelog.md).
 
 ## Updating from 0.9.x to 1.0.X
 
@@ -33,6 +42,7 @@ We created a demo project for Rails4 that uses the latest version of this librar
 ### Supported versions of Ruby
 * 1.8.7
 * 1.9.x
+* 2.0.x
 * 2.1.x
 * 2.2.x
 * JRuby 1.7.19
@@ -45,6 +55,10 @@ We created a demo project for Rails4 that uses the latest version of this librar
 * Ensure all tests pass.
 * Do not change rakefile, version, or history.
 * Open a pull request, following [this template](https://gist.github.com/Lordnibbler/11002759).
+
+## Security Guidelines
+
+If you believe you have discovered a security vulnerability in this gem, please report it at https://www.onelogin.com/security with a description. We follow responsible disclosure guidelines, and will work with you to quickly find a resolution.
 
 ## Getting Started
 In order to use the toolkit you will need to install the gem (either manually or using Bundler), and require the library in your Ruby application:
@@ -254,7 +268,7 @@ end
 The following attributes are set:
   * idp_sso_target_url
   * idp_slo_target_url
-  * idp_cert_fingerpint
+  * idp_cert_fingerprint
 
 If you are using saml:AttributeStatement to transfer metadata, like the user name, you can access all the attributes through response.attributes. It contains all the saml:AttributeStatement with its 'Name' as a indifferent key the one/more saml:AttributeValue as value. The value returned depends on the value of the
 `single_value_compatibility` (when activate, only one value returned, the first one)
@@ -386,7 +400,10 @@ The settings related to sign are stored in the `security` attribute of the setti
 ```ruby
   settings.security[:authn_requests_signed]   = true     # Enable or not signature on AuthNRequest
   settings.security[:logout_requests_signed]  = true     # Enable or not signature on Logout Request
-  settings.security[:logout_responses_signed] = true     # Enable or not signature on Logout Response
+  settings.security[:logout_responses_signed] = true     # Enable or not 
+  signature on Logout Response
+  settings.security[:want_assertions_signed]  = true     # Enable or not 
+  the requirement of signed assertion
   settings.security[:metadata_signed]         = true     # Enable or not signature on Metadata
 
   settings.security[:digest_method]    = XMLSecurity::Document::SHA1

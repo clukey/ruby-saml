@@ -389,12 +389,22 @@ class RubySamlTest < Minitest::Test
         end
 
         it "return true when a nil URI is given in the ds:Reference" do
-
-          response_without_reference_uri.stubs(:conditions).returns(nil)
           settings.idp_cert = ruby_saml_cert_text
           response_without_reference_uri.settings = settings
-          assert response_without_reference_uri.is_valid?
-          assert_empty response.errors
+          response_without_reference_uri.stubs(:conditions).returns(nil)
+          response_without_reference_uri.is_valid?
+          assert_empty response_without_reference_uri.errors
+          assert 'saml@user.com', response_without_reference_uri.attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress']
+        end
+
+        it "collect errors when collect_errors=true" do
+          settings.idp_cert = ruby_saml_cert_text
+          settings.issuer = 'invalid'
+          response_invalid_subjectconfirmation_recipient.settings = settings
+          collect_errors = true
+          response_invalid_subjectconfirmation_recipient.is_valid?(collect_errors)
+          assert_includes response_invalid_subjectconfirmation_recipient.errors, "invalid is not a valid audience for this Response - Valid audiences: http://stuff.com/endpoints/metadata.php"
+          assert_includes response_invalid_subjectconfirmation_recipient.errors, "Invalid Signature on SAML Response"
         end
       end
     end
@@ -774,6 +784,13 @@ class RubySamlTest < Minitest::Test
       end
     end
 
+    describe "#name_id_format" do
+      it "extract the value of the name id element" do
+        assert_equal "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", response.name_id_format
+        assert_equal "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", response_with_signed_assertion.name_id_format
+      end
+    end
+
     describe "#sessionindex" do
       it "extract the value of the sessionindex element" do
         response = OneLogin::RubySaml::Response.new(fixture(:simple_saml_php))
@@ -990,6 +1007,26 @@ class RubySamlTest < Minitest::Test
       end
     end
 
+    describe '#want_assertion_signed' do
+      before do
+        settings.security[:want_assertions_signed] = true
+        @signed_assertion = OneLogin::RubySaml::Response.new(response_document_with_signed_assertion, :settings => settings)
+        @no_signed_assertion = OneLogin::RubySaml::Response.new(response_document_valid_signed, :settings => settings)
+      end
+
+
+      it 'returns false if :want_assertion_signed enabled and Assertion not signed' do
+        assert !@no_signed_assertion.send(:validate_signed_elements)
+        assert_includes @no_signed_assertion.errors, "The Assertion of the Response is not signed and the SP requires it"
+
+      end
+
+      it 'returns true if :want_assertion_signed enabled and Assertion is signed' do
+        assert @signed_assertion.send(:validate_signed_elements)
+        assert_empty @signed_assertion.errors
+      end
+    end
+
     describe "retrieve nameID" do
       it 'is possible  when nameID inside the assertion' do
         response_valid_signed.settings = settings
@@ -1001,12 +1038,17 @@ class RubySamlTest < Minitest::Test
           assert_raises(OneLogin::RubySaml::ValidationError, "An EncryptedID found and no SP private key found on the settings to decrypt it") do
             assert_equal "test@onelogin.com", response_encrypted_nameid.nameid
           end
+
+          assert_raises(OneLogin::RubySaml::ValidationError, "An EncryptedID found and no SP private key found on the settings to decrypt it") do
+            assert_equal "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", response_encrypted_nameid.name_id_format
+          end
       end
 
       it 'is possible when encryptID inside the assertion and settings has the private key' do
         settings.private_key = ruby_saml_key_text
         response_encrypted_nameid.settings = settings
         assert_equal "test@onelogin.com", response_encrypted_nameid.nameid
+        assert_equal "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", response_encrypted_nameid.name_id_format
       end
 
     end
